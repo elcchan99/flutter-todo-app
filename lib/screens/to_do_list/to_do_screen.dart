@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:todo_kch_app/constants.dart' as Constants;
 import 'package:todo_kch_app/models/to_do_item.dart';
 import 'package:todo_kch_app/screens/to_do_list/components/focused_item.dart';
 
@@ -92,12 +91,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
                     itemBuilder: (context, index) {
                       final item = todos[index];
                       print("${item.id}: ${item.title}");
-                      return Dismissible(
-                        key: ObjectKey(item),
-                        onDismissed: (direction) {
-                          onItemDeleted(item, index);
-                        },
-                        child: GestureDetector(
+                      return GestureDetector(
                             onTap: () {
                               onItemFocused(item, index);
                             },
@@ -108,9 +102,13 @@ class _ToDoScreenState extends State<ToDoScreen> {
                                       onUpdated: onItemUpdated, onBlur: () {
                                       onItemFocused(item, -1);
                                     })
-                                  : buildItem(item),
-                            )),
-                      );
+                                  : Dismissible(
+                                      key: ObjectKey(item),
+                                      onDismissed: (direction) {
+                                        onItemDeleted(item, index);
+                                      },
+                                      child: buildItem(item),
+                                    )));
                     },
                   ),
                 )

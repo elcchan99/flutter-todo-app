@@ -24,9 +24,9 @@ class ToDoItem extends StatefulWidget {
   ToDoItemState createState() => ToDoItemState();
 }
 
-class ToDoItemState extends State<ToDoItem> {
+class ToDoItemState extends State<ToDoItem>
+    with SingleTickerProviderStateMixin {
   bool isExpand = false;
-
   final titleTextCtrl = TextEditingController();
   final descriptionTextCtrl = TextEditingController();
 
@@ -78,8 +78,15 @@ class ToDoItemState extends State<ToDoItem> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             buildTitleTextField(context),
-                            Text(widget.item.tag,
-                                style: Theme.of(context).textTheme.bodyText1),
+                            AnimatedCrossFade(
+                              duration: Duration(milliseconds: 500),
+                              crossFadeState: isExpand
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                              firstChild: Text(widget.item.tag,
+                                  style: Theme.of(context).textTheme.bodyText1),
+                              secondChild: buildDescriptionTextField(context),
+                            ),
                           ]),
                       ExpandedSection(
                           expand: isExpand,
@@ -102,16 +109,22 @@ class ToDoItemState extends State<ToDoItem> {
       @required String hintText,
       TextStyle style,
       bool enabled = true,
-      bool autofocus = false}) {
+      bool autofocus = false,
+      EdgeInsets contentPadding = EdgeInsets.zero}) {
     return IntrinsicWidth(
-      child: TextField(
-          enabled: enabled,
-          controller: controller,
-          onSubmitted: (text) {
-            widget.onCollapsed();
-          },
-          style: style,
-          decoration: InputDecoration.collapsed(hintText: hintText)),
+      child: Padding(
+        padding: contentPadding,
+        child: TextField(
+            enabled: enabled,
+            controller: controller,
+            onSubmitted: (text) {
+              widget.onCollapsed();
+            },
+            style: style,
+            decoration: InputDecoration.collapsed(
+              hintText: hintText,
+            )),
+      ),
     );
   }
 
@@ -132,6 +145,7 @@ class ToDoItemState extends State<ToDoItem> {
       hintText: "Notes",
       enabled: isExpand,
       style: Theme.of(context).textTheme.bodyText1,
+      contentPadding: EdgeInsets.symmetric(vertical: 10),
     );
   }
 }

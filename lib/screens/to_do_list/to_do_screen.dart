@@ -14,35 +14,45 @@ class ToDoScreen extends StatefulWidget {
   _ToDoScreenState createState() => _ToDoScreenState();
 }
 
+class ModelKeyWrapper {
+  final ToDoItemModel model;
+  final GlobalKey<ToDoItemState> key;
+
+  ModelKeyWrapper({@required this.model, @required this.key});
+
+  factory ModelKeyWrapper.autoKey(ToDoItemModel model) {
+    return ModelKeyWrapper(
+      model: model,
+      key: LabeledGlobalKey<ToDoItemState>(model.id),
+    );
+  }
+}
+
 class _ToDoScreenState extends State<ToDoScreen> {
-  List<ToDoItemModel> todos;
+  List<ModelKeyWrapper> todos;
 
   int _currentFocus = -1;
 
   @override
   void initState() {
-    todos = widget.initialList;
+    todos = widget.initialList.map((e) => ModelKeyWrapper.autoKey(e)).toList();
     super.initState();
   }
 
   void onChecked(value, index) {
     setState(() {
-      todos[index].isDone = value;
+      todos[index].model.isDone = value;
     });
   }
 
   void onAddButtonPressed() {
     print("Add button clicked");
     setState(() {
-      todos.insert(0, ToDoItemModel.autoId(title: "", tag: ""));
+      final newItem = ToDoItemModel.autoId(title: "", tag: "");
+      todos.insert(0, ModelKeyWrapper.autoKey(newItem));
       _currentFocus = 0;
-    });
-  }
 
-  void onItemFocused(ToDoItemModel item, index) {
-    print("onItemFocused");
-    setState(() {
-      _currentFocus = _currentFocus == index ? -1 : index;
+      collapseItems(exceptIndex: _currentFocus);
     });
   }
 
@@ -71,49 +81,102 @@ class _ToDoScreenState extends State<ToDoScreen> {
     });
   }
 
+  void expandItem(int index) {
+    print("expandItem $index");
+    setState(() {
+      _currentFocus = index;
+      collapseItems(exceptIndex: _currentFocus);
+      todos[index].key.currentState.expand();
+    });
+  }
+
+  void collapseItem(int index) {
+    print("collapseItem $index");
+    setState(() {
+      _currentFocus = -1;
+      todos[index].key.currentState.collapse();
+    });
+  }
+
+  void collapseItems({int exceptIndex}) {
+    print("collapseItems except $exceptIndex");
+    // Reference: https://stackoverflow.com/questions/48930372/flutter-collapsing-expansiontile-after-choosing-an-item
+    todos.asMap().entries.forEach((entry) {
+      final int index = entry.key;
+      final ModelKeyWrapper todo = entry.value;
+      if (index != exceptIndex) {
+        todo.key.currentState.collapse();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
       child: SafeArea(
         child: Scaffold(
-          body: GestureDetector(
-            onTap: () {
-              onItemFocused(null, -1);
-            },
-            child: Container(
-              color: Colors.white,
-              child: Column(children: [
-                ToDoHeader(),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: todos.length,
-                    itemBuilder: (context, index) {
-                      final item = todos[index];
-                      print("${item.id}: ${item.title}");
-                      return GestureDetector(
-                            onTap: () {
-                              onItemFocused(item, index);
-                            },
-                            child: Container(
-                              margin: EdgeInsets.only(top: 8),
-                              child: (_currentFocus == index)
-                                  ? buildFocusItem(item,
-                                      onUpdated: onItemUpdated, onBlur: () {
-                                      onItemFocused(item, -1);
-                                    })
-                                  : Dismissible(
-                                      key: ObjectKey(item),
-                                      onDismissed: (direction) {
-                                        onItemDeleted(item, index);
-                                      },
-                                      child: buildItem(item),
-                                    )));
-                    },
-                  ),
-                )
-              ]),
-            ),
+          body: Container(
+            color: Colors.white,
+            child: Column(children: [
+              ToDoHeader(),
+              Expanded(
+                child: ListView.builder(
+                  // key: Key("to-do-list-view"),
+                  physics: _currentFocus == -1
+                      ? const AlwaysScrollableScrollPhysics()
+                      : const NeverScrollableScrollPhysics(),
+                  itemCount: todos.length,
+                  itemBuilder: (context, index) {
+                    final item = todos[index].model;
+                    // print("${item.id}: ${item.title}");
+                    final itemKey = todos[index].key;
+                    return Dismissible(
+                      key: ObjectKey(item),
+                      confirmDismiss: (direction) {
+                        return Future.value(_currentFocus != index);
+                      },
+                      onDismissed: (direction) {
+                        onItemDeleted(item, index);
+                      },
+                      child: ToDoItem(
+                        key: itemKey,
+                        item: item,
+                        onChecked: (value) {
+                          onItemChecked(item, value);
+                        },
+                        color: Colors.white,
+                        initialExpand: _currentFocus == index,
+                        onExpanded: () {
+                          expandItem(index);
+                        },
+                        onCollapsed: () {
+                          collapseItem(index);
+                        },
+                      ),
+                    );
+                    // return GestureDetector(
+                    //     onTap: () {
+                    //       onItemFocused(item, index);
+                    //     },
+                    //     child: Container(
+                    //         margin: EdgeInsets.only(top: 8),
+                    //         child: (_currentFocus == index)
+                    //             ? buildFocusItem(item,
+                    //                 onUpdated: onItemUpdated, onBlur: () {
+                    //                 onItemFocused(item, -1);
+                    //               })
+                    //             : Dismissible(
+                    //                 key: ObjectKey(item),
+                    //                 onDismissed: (direction) {
+                    //                   onItemDeleted(item, index);
+                    //                 },
+                    //                 child: buildItem(item),
+                    //               )));
+                  },
+                ),
+              )
+            ]),
           ),
           floatingActionButton: Container(
             decoration:

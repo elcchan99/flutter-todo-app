@@ -51,7 +51,9 @@ class _ExpandedSectionState extends State<ExpandedSection>
 
   @override
   void dispose() {
-    expandController.dispose();
+    if (widget.controller != null) {
+      expandController.dispose();
+    }
     super.dispose();
   }
 

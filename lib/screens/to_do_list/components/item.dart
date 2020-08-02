@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:todo_kch_app/models/to_do_item.dart';
 import 'package:todo_kch_app/screens/to_do_list/components/expandable.dart';
 
+import 'item_toolbar.dart';
+
 class ToDoItem extends StatefulWidget {
   final ToDoItemModel item;
   final Function onChecked;
@@ -93,7 +95,10 @@ class ToDoItemState extends State<ToDoItem>
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(height: 200, color: Colors.red)
+                                SizedBox(
+                                  height: 35,
+                                ),
+                                ItemToolbar(projectName: "Today"),
                               ]))
                     ],
                   ),

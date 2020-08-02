@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todo_kch_app/models/to_do_item.dart';
 import 'package:todo_kch_app/screens/to_do_list/components/focused_item.dart';
+import 'package:todo_kch_app/screens/to_do_list/mask_overlay/mask_overlay.dart';
 
 import 'components/header.dart';
 import 'components/item.dart';
@@ -17,13 +18,16 @@ class ToDoScreen extends StatefulWidget {
 class ModelKeyWrapper {
   final ToDoItemModel model;
   final GlobalKey<ToDoItemState> key;
+  final GlobalKey<MaskOverlayState> maskKey;
 
-  ModelKeyWrapper({@required this.model, @required this.key});
+  ModelKeyWrapper(
+      {@required this.model, @required this.key, @required this.maskKey});
 
   factory ModelKeyWrapper.autoKey(ToDoItemModel model) {
     return ModelKeyWrapper(
       model: model,
       key: LabeledGlobalKey<ToDoItemState>(model.id),
+      maskKey: GlobalKey(),
     );
   }
 }
@@ -87,6 +91,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
       _currentFocus = index;
       collapseItems(exceptIndex: _currentFocus);
       todos[index].key.currentState.expand();
+      todos[index].maskKey.currentState.setMask();
     });
   }
 
@@ -95,6 +100,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
     setState(() {
       _currentFocus = -1;
       todos[index].key.currentState.collapse();
+      todos[index].maskKey.currentState.setUnmask();
     });
   }
 
@@ -106,6 +112,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
       final ModelKeyWrapper todo = entry.value;
       if (index != exceptIndex) {
         todo.key.currentState.collapse();
+        todos[index].maskKey.currentState.setUnmask();
       }
     });
   }
@@ -131,6 +138,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
                     final item = todos[index].model;
                     // print("${item.id}: ${item.title}");
                     final itemKey = todos[index].key;
+                    final maskKey = todos[index].maskKey;
                     return Dismissible(
                       key: ObjectKey(item),
                       confirmDismiss: (direction) {
@@ -139,40 +147,29 @@ class _ToDoScreenState extends State<ToDoScreen> {
                       onDismissed: (direction) {
                         onItemDeleted(item, index);
                       },
-                      child: ToDoItem(
-                        key: itemKey,
-                        item: item,
-                        onChecked: (value) {
-                          onItemChecked(item, value);
-                        },
-                        color: Colors.white,
-                        initialExpand: _currentFocus == index,
-                        onExpanded: () {
-                          expandItem(index);
-                        },
-                        onCollapsed: () {
+                      child: MaskOverlay(
+                        key: maskKey,
+                        masked: _currentFocus == index,
+                        onMaskTap: () {
                           collapseItem(index);
                         },
+                        child: ToDoItem(
+                          key: itemKey,
+                          item: item,
+                          onChecked: (value) {
+                            onItemChecked(item, value);
+                          },
+                          color: Colors.white,
+                          initialExpand: _currentFocus == index,
+                          onExpanded: () {
+                            expandItem(index);
+                          },
+                          onCollapsed: () {
+                            collapseItem(index);
+                          },
+                        ),
                       ),
                     );
-                    // return GestureDetector(
-                    //     onTap: () {
-                    //       onItemFocused(item, index);
-                    //     },
-                    //     child: Container(
-                    //         margin: EdgeInsets.only(top: 8),
-                    //         child: (_currentFocus == index)
-                    //             ? buildFocusItem(item,
-                    //                 onUpdated: onItemUpdated, onBlur: () {
-                    //                 onItemFocused(item, -1);
-                    //               })
-                    //             : Dismissible(
-                    //                 key: ObjectKey(item),
-                    //                 onDismissed: (direction) {
-                    //                   onItemDeleted(item, index);
-                    //                 },
-                    //                 child: buildItem(item),
-                    //               )));
                   },
                 ),
               )
@@ -192,33 +189,6 @@ class _ToDoScreenState extends State<ToDoScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildItem(ToDoItemModel item) {
-    return ToDoItem(
-      key: LabeledGlobalKey(item.id),
-      item: item,
-      onChecked: (value) {
-        onItemChecked(item, value);
-      },
-      color: Colors.white,
-    );
-  }
-
-  Widget buildFocusItem(ToDoItemModel item,
-      {Function onUpdated, Function onBlur}) {
-    return ToDoFocusedItem(
-      item: item,
-      key: LabeledGlobalKey(item.id),
-      onChecked: (value) {
-        onItemChecked(item, value);
-      },
-      onUpdated: ({String title, String description}) {
-        onUpdated(item, title: title, description: description);
-      },
-      onBlur: onBlur,
-      color: Colors.white,
     );
   }
 }

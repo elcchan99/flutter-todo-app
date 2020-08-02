@@ -37,8 +37,10 @@ class _ExpandedSectionState extends State<ExpandedSection>
 
   void _runExpandCheck() {
     if (widget.expand) {
+      print("ExpandedSection _runExpandCheck() expanding");
       expandController.forward();
     } else {
+      print("ExpandedSection _runExpandCheck() collapsing");
       expandController.reverse();
     }
   }
